@@ -1,0 +1,142 @@
+Envoirnment Info:
+
+The app will be referred as the Exploride OS App, Initially this was developed to run on on MTK908 Android MINI PC. ALL the testing was done on this enviornement. Mini PC was running on Kitkat. The Extra settings we did on the Mini PC was
+Change the Bootscreen the bootscreen zip we created (gif anmation of exploride logo ) replaced the orginal bootscreen
+How ever there was an initial 2 second OEM Screen which we were not able to overright , but we changed it to a simple screen by Flashing the miniPC with Finless ROM.
+Changed the orientation of the minipc by editing root files
+Seted as home launcher
+Program Source Description:
+Total Class Files :19 
+Starting Class:
+ExplorideHomelauncher is the starting class
+	In the initial Section you can see i am initialising a wifi hotspot,Fragment manger     (which delts with UI changing).
+Imp:
+I am creating a fragment array there which in later stage will be used to show appropriate ui on the async callbacks .
+Then there is an OTG Listenr , New Data is to be executed when new data comes. which is in uithread UpdateReceivedData.
+
+In the start activity there will be network service starting which will listen for Commands coming from user phone over Wifi :-
+Intent intent = new Intent(this, NetworkService.class);
+    this.startService(intent);
+After that You can see alot of functions for managing otg data
+Ui Is Changed On two scenarios:
+When the String comes through Network Class Such as incoming phone , Incoming msg:-
+		public void networkevent(String data) {
+	// TODO Auto-generated method stub
+String[] command=data.split(Pattern.quote("|"));
+Log.i("das",command[0]);
+if (command[0].equals("SMSIN")){
+	 Bundle args = new Bundle();
+	 args.putString("cmd",data);   
+	 NotificationLauncher newnotif= new NotificationLauncher();
+	 newnotif.setArguments(args);
+	getSupportFragmentManager().beginTransaction().setCustomAnimations(R.animator.slide_in_down,R.animator.slide_in_up)
+	   .add(R.id.containerf00000rame,newnotif).commit();
+
+ 
+
+There is an AIDL implemnted but here we will not be dealing with that much:-
+
+So We have to change UI on The ANDI Projection Phone also when this happens.
+So If You look in to The NetworkService calss.: _ aidl will pass the commands to acitvity.
+  message += "#" + count + " from " + socket.getInetAddress()
+          + ":" + socket.getPort() + "\n"
+          + "Msg from client: " + messageFromClient + "\n";
+        	Log.d("MESG",message);
+        	fromActivityProcess(messageFromClient);
+
+So one method is you can connect to the same port ,and initially send a diffrent string “PROJECTCONNECT” , when i receive that string i can save the ip address in my settiongs and on each of this Command Pass it to the Projector phone IP.
+
+When Ever a gesture ocures :-
+So this is happend 
+		ublic void moveRight()
+{
+	if(intrFacecount!=0)
+	{
+	intrFacecount = intrFacecount -1;
+	LoadInterface();
+	}
+	
+}
+public void moveLeft()
+{
+	if(intrFacecount!=(interfaces.length-1))
+	{
+	intrFacecount = intrFacecount+1;
+	LoadInterfaceb();
+	}
+}
+
+So when ever the event occurs Youc an pass this to the network service(but passback value to the network service is not registred, you can add the function in aidl and call it, it was there before i removed it.).
+
+Solutions Strategies :
+Exploride os app starts wifi networ services starts listening , For clients So User Phone connect with Phone it understands that its a clent request., and the projection phone also try to connect in With a diffrent message(“PROJ”) so now it will store the client IP.
+But here looing at the code i am not sure you might require to modify the code to accept multiple cleint
+
+     static final int SocketServerPORT = 7575;
+     int count = 0;
+
+     @Override
+     public void run() {
+      Socket socket = null;
+      DataInputStream dataInputStream = null;
+      DataOutputStream dataOutputStream = null;
+
+      try {
+       serverSocket = new ServerSocket(SocketServerPORT);
+      
+
+       while (true) {
+        socket = serverSocket.accept();
+        dataInputStream = new DataInputStream(
+          socket.getInputStream());
+        dataOutputStream = new DataOutputStream(
+          socket.getOutputStream());
+
+        String messageFromClient = "";
+        
+        //If no message sent from client, this code will block the program
+        messageFromClient = dataInputStream.readUTF();
+        
+        count++;
+        message += "#" + count + " from " + socket.getInetAddress()
+          + ":" + socket.getPort() + "\n"
+          + "Msg from client: " + messageFromClient + "\n";
+        	Log.d("MESG",message);
+        	fromActivityProcess(messageFromClient);
+        	
+//        Omg.this.runOnUiThread(new Runnable() {
+//
+//         @Override
+//         public void run() {
+//          msg.setText(message);
+//         }
+//        });
+        	String msgReply ="##";
+        	if(messageFromClient.equals("Connection Request")){
+        		msgReply = "Connection Accept";
+        	}
+        dataOutputStream.writeUTF(msgReply);
+
+
+
+Write a function in the Network service class to broadcast or Send A message to the projection Phone IP:
+And On an Event Happening which is Gesture, Send that command to The projection phone via this same service
+On the Projection phone :
+Fragment array or any thing 
+Network service to listento incoming data 
+change screens acording to the incoming
+
+Startagy 2:
+
+Curent android phone(MiniPC or any Non ANdi phone) Be there just for OTG DATA 
+And ANDI PHONE WIll have network service(wifi Hotspot )which user phone will be connecting to and the phone will receive all data directly from the user phone such as incoming and directly change the ui on to it:- 
+But for swipe gestures you might still require data coming from other OTG Phone.
+
+
+
+Possible Bug:-
+
+When Incoming Call comes uesr phone app sends three repeated Mesagess(copy of each) (phone activity class event  executed three times):- 
+
+And OTG port resets and causes loss of comunication this is due to the cause its running from activity(am not sure) , or you might have to write the code to re initiate the connection
+
